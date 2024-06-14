@@ -1,0 +1,118 @@
+#include <stdio.h>
+#include <string.h>
+#include <SoftwareSerial.h>
+
+// O2 sensor library (includes wire.h)
+#include "DFRobot_OxygenSensor.h"
+
+// O2 sensor
+#define COLLECT_NUMBER    10             // collect number, the collection range is 1-100.
+#define Oxygen_IICAddress ADDRESS_3
+DFRobot_OxygenSensor Oxygen;
+
+// CO2 sensor, declaration of software seral interface
+SoftwareSerial SSerial(rxP, txP);
+
+// CO2 sensor I/O pins
+const byte rxP = 9;
+const byte txP = 11;
+
+
+// reading and writing
+char c = ' ';
+
+// time variables
+float fTime = 0;
+float iTime = 0;
+float tCounter = 0;
+
+int i;
+
+/********************************************************************************************/
+/*
+
+CO2 sensor units are in parts per million (ppm), while the O2 sensor reads in volume percentage.
+At analysis one must take this into account when reporting  data and making deductions, as much as these
+differences may not be significative in some instances.
+There aren't many or almost any general security checks, since the sensors were merely tried in fresh air,
+and not inside the actual desiccator with a mostly CO2 atmosphere. In any case, it's almost always best to
+include checks like a connection check, and data validity checks.
+
+*/
+/********************************************************************************************/
+
+void setup()
+{
+
+  Serial.begin(9600);
+  SSerial.begin(9600);
+  Oxygen.begin(Oxygen_IICAddress);
+  Serial.println("VOID SETUP CHECK");
+  
+}
+
+void loop()
+{
+
+  // character flush
+  for (i = 0; i < 18*7; i++) {
+    if (SSerial.available())
+    {
+      c = SSerial.read();
+      //Serial.write(c);
+    }
+  }
+  
+  tCounter = 0.0;
+  
+  Serial.println("CO2 \"while\" loop: ");
+  iTime = (float)millis();
+
+  // Read data from the sensor on the basis of time
+  while (tCounter <= 5000) {
+    // read from the serial module and send to the Arduino Serial Monitor
+    if (SSerial.available())
+    {
+      c = SSerial.read();
+      Serial.write(c);
+    }
+    
+    fTime = (float)millis();
+    tCounter = fTime - iTime;
+
+  }
+
+
+  Serial.print("\n");
+  delay(3000);
+ 
+
+  Serial.println("CO2 \"for\" loop: ");
+  
+  // Read data from the sensor on the basis of units of readings
+  for (i = 0; i < 18*2; i++) {
+    // read from the serial module and send to the Arduino Serial Monitor
+    if (SSerial.available())
+    {
+      c = SSerial.read();
+      Serial.write(c);     
+    }
+  }
+  
+  Serial.print("\n");
+  delay(3000);
+  
+  Serial.println("O2 \"for\" loop: ");
+
+  for (i=0; i<5; i++) {
+    float oxygenData = Oxygen.getOxygenData(COLLECT_NUMBER);
+    Serial.print(" Oxygen concentration is ");
+    Serial.print(oxygenData);
+    Serial.println(" %vol");
+    delay(1000);
+  }
+
+  Serial.print("\n");
+  delay(3000);
+
+}
